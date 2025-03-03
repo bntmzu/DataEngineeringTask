@@ -1,4 +1,6 @@
-from src.DataEngineeringTask.utils import initialize_spark, load_data
+import pandas as pd
+from tabulate import tabulate
+from src.DataEngineeringTask.utils import load_data
 from src.DataEngineeringTask.data_processing import (
     clean_dataframe,
     normalize_cities,
@@ -6,7 +8,7 @@ from src.DataEngineeringTask.data_processing import (
     validate_data,
     process_atc_data
 )
-from src.DataEngineeringTask.config import RAW_DATA_PATH, PROCESSED_DATA_PATH, PROCESSED_ATC_PATH
+from src.DataEngineeringTask.config import RAW_DATA_PATH, PROCESSED_DATA_PATH, PROCESSED_ATC_PATH, ATC_PATH, DATA_PATH
 
 
 def main():
@@ -38,16 +40,27 @@ def main():
         print(" Validating processed data...")
         df = validate_data(df)
 
-        # Save business data directly as Parquet (without Spark)
+        # Save business data directly
         print(" Saving processed business data as Parquet...")
         df.to_parquet(PROCESSED_DATA_PATH, index=False)
 
-        print(" Processing ATC (medical) data with Spark...")
-        spark = initialize_spark()
-        df_atc = process_atc_data(spark)
+        try:
+          df = pd.read_parquet(DATA_PATH, engine="pyarrow")
+          print(tabulate(df.head(), headers="keys", tablefmt="grid"))
+        except Exception as e:
+            print(f"❌ Ошибка при чтении {DATA_PATH}: {e}")
+
+        print(" Processing ATC (medical) data with Pandas...")
+        df_atc = process_atc_data()
 
         print(" Saving ATC data as Parquet...")
-        df_atc.write.mode("overwrite").parquet(PROCESSED_ATC_PATH)
+        df_atc.to_parquet(PROCESSED_ATC_PATH, engine="pyarrow", index=False)
+
+
+        df_atc = pd.read_parquet(ATC_PATH, engine="pyarrow")
+
+        print(df_atc.dtypes)
+        print(tabulate(df_atc, headers="keys", tablefmt="grid"))
 
         print(" All data processing complete!")
 

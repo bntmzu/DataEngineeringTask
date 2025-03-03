@@ -1,14 +1,7 @@
 import pandas as pd
-import json
-from pyspark.sql import SparkSession
 
-from src.DataEngineeringTask.config import RAW_DATA_PATH, SPARK_APP_NAME
+from src.DataEngineeringTask.config import RAW_DATA_PATH
 
-def initialize_spark():
-    """
-    Initializes Spark session.
-    """
-    return SparkSession.builder.appName(SPARK_APP_NAME).getOrCreate()
 
 def load_data(file_path=RAW_DATA_PATH):
     """

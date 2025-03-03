@@ -2,9 +2,7 @@ import pandas as pd
 import json
 import re
 from thefuzz import process
-from pyspark.sql import functions as F
-from pyspark.sql.window import Window
-from pyspark.sql.types import StructType, StructField, StringType, DateType
+
 
 from src.DataEngineeringTask.config import CITY_MATCH_THRESHOLD
 
@@ -104,18 +102,18 @@ def validate_data(df):
 
     return df
 
-def process_atc_data(spark):
+def process_atc_data():
     """
-    Loads and processes ATC medical data using PySpark.
+    Loads and processes ATC medical data.
     Ensures correct schema and deduplication by `valid_from` date.
     """
-    schema = StructType([
-    StructField("valid_from", StringType(), True),
-    StructField("valid_to", StringType(), True),
-    StructField("code", StringType(), True),
-    StructField("description", StringType(), True),
-    StructField("description_en", StringType(), True)
-    ])
+    dtype_mapping = {
+        "valid_from": "string",
+        "valid_to": "string",
+        "code": "string",
+        "description": "string",
+        "description_en": "string"
+    }
 
     ATC = [
         ("1900-01-01", "9999-12-31", "A", "Maagdarmkanaal en Metabolisme", "Alimentary Tract and Metabolism"),
@@ -141,15 +139,22 @@ def process_atc_data(spark):
 	    ("2024-12-31", "9999-12-31", "Z", "Niet Van Toepassing", None)
     ]
 
-    df_atc = spark.createDataFrame(ATC, schema=schema)
-    # Convert valid_from and valid_to to DateType
-    df_atc = df_atc.withColumn("valid_from", df_atc["valid_from"].cast(DateType()))
-    df_atc = df_atc.withColumn("valid_to", df_atc["valid_to"].cast(DateType()))
+    columns = ["valid_from", "valid_to", "code", "description", "description_en"]
+    df_atc = pd.DataFrame(ATC, columns=columns).astype(dtype_mapping)
 
-    df_atc = df_atc.withColumn("row_num", F.row_number().over(
-        Window.partitionBy("code").orderBy(F.desc("valid_from"))
-    ))
-    df_atc = df_atc.filter(df_atc.row_num == 1).drop("row_num")
+    df_atc["valid_to"] = df_atc["valid_to"].replace("9999-12-31", "2099-12-31")
+
+    # Převod sloupců na datetime a nastavení přesnosti na den
+    df_atc["valid_from"] = pd.to_datetime(df_atc["valid_from"]).astype("datetime64[ms]")
+
+    df_atc["valid_to"] = pd.to_datetime(df_atc["valid_to"]).astype("datetime64[ms]")
+
+
+    # Nastavení NaT ve sloupci "valid_to", pokud hodnota odpovídá '9999-12-31'
+    df_atc.loc[df_atc["valid_to"] == pd.Timestamp("9999-12-31"), "valid_to"] = pd.NaT
+
+    df_atc = df_atc.sort_values("valid_from", ascending=False).drop_duplicates("code", keep="first")
+
 
     return df_atc
 
