@@ -21,6 +21,8 @@ def main():
     - Saves processed data in Parquet format
     """
     try:
+
+
         print(" Loading raw data...")
         df = load_data(RAW_DATA_PATH)
 
@@ -36,18 +38,18 @@ def main():
         print(" Validating processed data...")
         df = validate_data(df)
 
-        # ✅ Save business data directly as Parquet (without Spark)
-        print("✅ Saving processed business data as Parquet...")
+        # Save business data directly as Parquet (without Spark)
+        print(" Saving processed business data as Parquet...")
         df.to_parquet(PROCESSED_DATA_PATH, index=False)
 
-        print("🚀 Processing ATC (medical) data with Spark...")
+        print(" Processing ATC (medical) data with Spark...")
         spark = initialize_spark()
         df_atc = process_atc_data(spark)
 
-        print("✅ Saving ATC data as Parquet...")
+        print(" Saving ATC data as Parquet...")
         df_atc.write.mode("overwrite").parquet(PROCESSED_ATC_PATH)
 
-        print("🔥 All data processing complete!")
+        print(" All data processing complete!")
 
     except Exception as e:
         print(f"❌ Error encountered: {e}")

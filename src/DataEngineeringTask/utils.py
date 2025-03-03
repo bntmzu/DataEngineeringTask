@@ -12,11 +12,9 @@ def initialize_spark():
 
 def load_data(file_path=RAW_DATA_PATH):
     """
-    Loads JSON data as Pandas DataFrame.
+    Loads JSON data stored in JSON Lines format (NDJSON) as Pandas DataFrame.
     """
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return pd.DataFrame(data)
+    return pd.read_json(file_path, lines=True)
 
 
 

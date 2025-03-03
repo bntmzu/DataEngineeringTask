@@ -69,8 +69,13 @@ def normalize_cities(df):
     city_mapping = {}
 
     for city in unique_cities:
-        best_match, score = process.extractOne(city, city_mapping.keys(), score_cutoff=CITY_MATCH_THRESHOLD)
-        city_mapping[city] = best_match if best_match else city
+        result = process.extractOne(city, city_mapping.keys(), score_cutoff=CITY_MATCH_THRESHOLD)
+
+        if result:
+            best_match, score = result
+            city_mapping[city] = best_match
+        else:
+            city_mapping[city] = city
 
     df["city"] = df["city"].map(city_mapping)
     return df
